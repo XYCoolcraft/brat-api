@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>brat api — generate brat-style images &amp; videos</title>
+<meta name="description" content="A free, self-hosted API that generates brat-style cover images and videos from any text. GET /brat?text= and /bratvideo?text=." />
+<style>
+  @font-face {
+    font-family: 'ArialNarrow';
+    src: url('/fonts/ARIALN.ttf') format('truetype');
+    font-display: swap;
+  }
+
+  :root {
+    --brat-green: #8ace00;
+    --brat-black: #0a0a0a;
+    --brat-white: #ffffff;
+    --ink: #111111;
+    --muted: #5c5c5c;
+    --line: #d9e6b8;
+    --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--brat-white);
+    color: var(--ink);
+    font-family: 'ArialNarrow', Arial, sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  a { color: inherit; }
+
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.92em;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    background: var(--brat-green);
+    min-height: 78vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8vh 6vw 6vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    color: var(--brat-black);
+    opacity: 0.65;
+    margin-bottom: 1.2rem;
+    letter-spacing: 0.08em;
+  }
+
+  .hero h1 {
+    font-family: 'ArialNarrow', Arial, sans-serif;
+    font-weight: 400;
+    text-transform: lowercase;
+    font-size: clamp(3.2rem, 13vw, 9rem);
+    line-height: 0.92;
+    margin: 0;
+    color: var(--brat-black);
+    filter: blur(0.6px);
+    letter-spacing: -0.01em;
+  }
+
+  .hero p.tagline {
+    max-width: 46ch;
+    font-family: Arial, sans-serif;
+    font-size: 1.05rem;
+    color: var(--brat-black);
+    opacity: 0.82;
+    margin: 1.4rem 0 2.2rem;
+  }
+
+  .hero-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-block;
+    padding: 0.85rem 1.4rem;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    text-decoration: none;
+    border: 1.5px solid var(--brat-black);
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-solid { background: var(--brat-black); color: var(--brat-green); }
+  .btn-solid:hover { background: #000; }
+  .btn-ghost { background: transparent; color: var(--brat-black); }
+  .btn-ghost:hover { background: rgba(0,0,0,0.08); }
+
+  /* ---------- SECTIONS ---------- */
+  section { padding: 5.5rem 6vw; max-width: 1120px; margin: 0 auto; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  h2 {
+    font-family: 'ArialNarrow', Arial, sans-serif;
+    font-weight: 400;
+    text-transform: lowercase;
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    margin: 0 0 2rem;
+  }
+
+  /* ---------- TRY IT ---------- */
+  .try-box {
+    border: 1.5px solid var(--brat-black);
+    border-radius: 18px;
+    padding: 2rem;
+    background: #fafcf3;
+  }
+
+  .try-row { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+
+  .try-row input[type="text"] {
+    flex: 1 1 260px;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1.5px solid #c9c9c9;
+    font-family: Arial, sans-serif;
+    font-size: 1rem;
+  }
+  .try-row select {
+    padding: 0.85rem 0.9rem;
+    border-radius: 10px;
+    border: 1.5px solid #c9c9c9;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    background: #fff;
+  }
+  .try-row button {
+    padding: 0.85rem 1.4rem;
+    border-radius: 10px;
+    border: none;
+    background: var(--brat-black);
+    color: var(--brat-green);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .try-row button:hover { background: #000; }
+
+  .try-url {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    background: #111;
+    color: #8ace00;
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 1.2rem;
+  }
+
+  .try-preview {
+    display: flex;
+    justify-content: center;
+    background: #eee;
+    border-radius: 12px;
+    padding: 1.2rem;
+    min-height: 220px;
+    align-items: center;
+  }
+  .try-preview img { max-width: 260px; width: 100%; border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+  .try-hint { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); text-align: center; }
+
+  /* ---------- ENDPOINTS ---------- */
+  .endpoint {
+    border: 1px solid #e2e2e2;
+    border-radius: 14px;
+    padding: 1.6rem 1.8rem;
+    margin-bottom: 1.2rem;
+  }
+  .endpoint .method {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    background: var(--brat-green);
+    color: var(--brat-black);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    margin-right: 0.6rem;
+  }
+  .endpoint .path { font-family: var(--mono); font-size: 1rem; }
+  .endpoint p { color: var(--muted); font-family: Arial, sans-serif; margin: 0.7rem 0 0.9rem; }
+  .params { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.82rem; }
+  .params th, .params td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid #eee; }
+  .params th { color: var(--muted); font-weight: 400; }
+
+  pre.codeblock {
+    background: #111;
+    color: #e8e8e8;
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  pre.codeblock .cmt { color: #8ace00; }
+
+  /* ---------- PREVIEW GALLERY ---------- */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+  }
+  .gallery figure {
+    margin: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #eee;
+  }
+  .gallery img { width: 100%; display: block; }
+  .gallery figcaption {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 0.7rem 0.9rem;
+  }
+
+  /* ---------- STEPS ---------- */
+  .steps { display: grid; gap: 1.4rem; }
+  .step {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  .step .num {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--brat-green);
+    color: var(--brat-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step h3 { margin: 0 0 0.4rem; font-family: Arial, sans-serif; font-size: 1.05rem; font-weight: 700; }
+  .step p { margin: 0; color: var(--muted); font-family: Arial, sans-serif; font-size: 0.95rem; }
+
+  footer {
+    padding: 3rem 6vw 4rem;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-top: 1px solid #eee;
+  }
+  footer a { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    section { padding: 3.5rem 6vw; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-eyebrow">// free · self-hosted · no api key required</div>
+    <h1>brat api</h1>
+    <p class="tagline">Turn any text into a brat-style square cover image or word-by-word reveal video. Two endpoints, zero setup, works with any language over plain HTTP.</p>
+    <div class="hero-actions">
+      <a class="btn btn-solid" href="#try-it">try it now</a>
+      <a class="btn btn-ghost" href="#endpoints">read the docs</a>
+    </div>
+  </div>
+
+  <section id="try-it">
+    <div class="section-label">01 · live demo</div>
+    <h2>type something</h2>
+    <div class="try-box">
+      <div class="try-row">
+        <input type="text" id="bratText" placeholder="type your text here..." value="brat" />
+        <select id="bratTheme">
+          <option value="white">white</option>
+          <option value="black">black</option>
+          <option value="green" selected>green</option>
+        </select>
+        <select id="bratBlur">
+          <option value="0" selected>no blur</option>
+          <option value="1">blur 1</option>
+          <option value="2">blur 2</option>
+          <option value="3">blur 3</option>
+        </select>
+        <button id="bratGo">generate</button>
+      </div>
+      <div class="try-url" id="bratUrl">/brat?text=brat&amp;theme=green</div>
+      <div class="try-preview" id="bratPreviewBox">
+        <span class="try-hint">click "generate" to render a live preview from this server</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="endpoints">
+    <div class="section-label">02 · reference</div>
+    <h2>two endpoints. that's it.</h2>
+
+    <div class="endpoint">
+      <div><span class="method">GET</span><span class="path">/brat?text=</span></div>
+      <p>Returns a single 1000×1000 PNG image, styled like the classic brat cover. Spaces in the text can be a literal space or <code>%20</code> — both work.</p>
+      <table class="params">
+        <tr><th>param</th><th>type</th><th>default</th><th>description</th></tr>
+        <tr><td>text</td><td>string</td><td>—</td><td>required. the text to render</td></tr>
+        <tr><td>theme</td><td>black · white · green</td><td>white</td><td>background / text colors</td></tr>
+        <tr><td>blur</td><td>0 · 1 · 2 · 3</td><td>0</td><td>text blur amount</td></tr>
+      </table>
+    </div>
+
+    <div class="endpoint">
+      <div><span class="method">GET</span><span class="path">/bratvideo?text=</span></div>
+      <p>Returns an MP4 (or GIF) that reveals the text word-by-word, the same effect as the original brat generator video.</p>
+      <table class="params">
+        <tr><th>param</th><th>type</th><th>default</th><th>description</th></tr>
+        <tr><td>text</td><td>string</td><td>—</td><td>required. the text to render</td></tr>
+        <tr><td>theme</td><td>black · white · green</td><td>white</td><td>background / text colors</td></tr>
+        <tr><td>blur</td><td>0 · 1 · 2 · 3</td><td>0</td><td>text blur amount</td></tr>
+        <tr><td>format</td><td>mp4 · gif</td><td>mp4</td><td>output file format</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">03 · copy &amp; paste</div>
+    <h2>real, working examples</h2>
+    <pre class="codeblock"><span class="cmt"># image, spaces as %20</span>
+curl "https://your-domain.com/brat?text=Hello%20World&theme=green" --output brat.png
+
+<span class="cmt"># image, spaces as literal " " (also works)</span>
+curl "https://your-domain.com/brat?text=Hello World&theme=black&blur=1" --output brat.png
+
+<span class="cmt"># word-by-word reveal video</span>
+curl "https://your-domain.com/bratvideo?text=so this is brat&format=mp4" --output brat.mp4
+
+<span class="cmt"># plain HTML - any language, no library needed</span>
+&lt;img src="https://your-domain.com/brat?text=so%20original" /&gt;</pre>
+  </section>
+
+  <section>
+    <div class="section-label">04 · preview</div>
+    <h2>what it looks like</h2>
+    <div class="gallery">
+      <figure>
+        <img src="/examples/preview-green.png" alt="brat, green theme" />
+        <figcaption>/brat?text=brat&amp;theme=green</figcaption>
+      </figure>
+      <figure>
+        <img src="/examples/preview-black.png" alt="hello world brat api, black theme, blur 1" />
+        <figcaption>/brat?text=Hello%20World%20Brat%20API&amp;theme=black&amp;blur=1</figcaption>
+      </figure>
+      <figure>
+        <img src="/examples/preview-white.png" alt="so cool right, white theme" />
+        <figcaption>/brat?text=so%20cool%20right&amp;theme=white</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">05 · getting started</div>
+    <h2>run your own in 3 steps</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div><h3>Clone or download this repo</h3><p>Grab the <code>web/</code> folder from the GitHub repository — it's a complete, self-contained project.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div><h3>Install dependencies</h3><p>Run <code>npm install</code> inside the <code>web/</code> folder.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div><h3>Start it or deploy it</h3><p>Run <code>npm start</code> to try it locally, or push to GitHub and import the repo on Vercel for an instant public URL.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    brat api · built for global, language-agnostic use · see README.md and TUTORIAL-HOW-TO-USE.md in the repository for full docs
+  </footer>
+
+  <script>
+    const textEl = document.getElementById('bratText');
+    const themeEl = document.getElementById('bratTheme');
+    const blurEl = document.getElementById('bratBlur');
+    const urlEl = document.getElementById('bratUrl');
+    const goEl = document.getElementById('bratGo');
+    const previewBox = document.getElementById('bratPreviewBox');
+
+    function buildUrl() {
+      const text = encodeURIComponent(textEl.value || 'brat');
+      const theme = themeEl.value;
+      const blur = blurEl.value;
+      let path = `/brat?text=${text}&theme=${theme}`;
+      if (blur !== '0') path += `&blur=${blur}`;
+      return path;
+    }
+
+    function refreshUrlLabel() {
+      urlEl.textContent = buildUrl();
+    }
+
+    [textEl, themeEl, blurEl].forEach(el => el.addEventListener('input', refreshUrlLabel));
+    refreshUrlLabel();
+
+    goEl.addEventListener('click', () => {
+      const path = buildUrl();
+      previewBox.innerHTML = '<span class="try-hint">rendering…</span>';
+      const img = new Image();
+      img.onload = () => {
+        previewBox.innerHTML = '';
+        previewBox.appendChild(img);
+      };
+      img.onerror = () => {
+        previewBox.innerHTML = '<span class="try-hint">could not reach the API from this page — if you are viewing this file directly, run it with "npm start" or deploy it first.</span>';
+      };
+      img.src = path + '&_=' + Date.now();
+    });
+  </script>
+
+</body>
+</html>

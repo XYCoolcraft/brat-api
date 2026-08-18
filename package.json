@@ -1,0 +1,29 @@
+{
+  "name": "brat-api-web",
+  "version": "1.0.0",
+  "description": "Free brat-style image & video generator API with a built-in tutorial homepage. CommonJS, Node.js v24, deployable to Vercel or run standalone.",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "brat",
+    "brat-generator",
+    "brat-api",
+    "image-generator",
+    "canvas",
+    "meme",
+    "text-to-image"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.53",
+    "ffmpeg-static": "^5.2.0"
+  }
+}
